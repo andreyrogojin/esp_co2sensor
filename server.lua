@@ -1,7 +1,3 @@
--- wifi.setmode(1,false)
--- wifi.sta.config({ssid='SPrint2', pwd='1223334444', auto=false, save=false})
--- wifi.sta.connect(function() print('connected') end)
-
 wifi.setmode(wifi.SOFTAP, false)
 
 notfound = ('HTTP/1.0 404 Not Found\r\n'..
@@ -17,7 +13,20 @@ local function ctype(ext)
 	if ext == 'html' or ext == 'htm' then return 'text/html'
 	elseif ext == 'txt' then return 'text/plain'
 	elseif ext == 'csv' then return 'text/csv'
+	else return 'text/plain'
 	end
+end
+
+function list_file(template)
+	local lst = {}
+	local sizes = {}
+	for name,size in pairs(file.list()) do
+		if name:match(template or '.*') then
+			lst[#lst+1] = name
+			sizes[name] = size
+		end
+	end
+	return lst,sizes
 end
 
 srv = net.createServer(net.TCP)
@@ -28,45 +37,93 @@ function receiver(sck, data)
 	local filename = url:match('^.*/([^/]+)$')
 	local extention = url:match('^.*/[^/]+[.]([^/]+)$')
 	if not filename then
-		filename = 'index.html'
+		filename = 'graf.html'
 		extention = 'html'
 	end
 	-- print(url, filename, extention)
 
-	if filename == 'index.html' then
-		local lst = {}
-		for f,l in pairs(file.list()) do lst[#lst+1] = f end
-		lst[0] = '<html><body>\n'
-		lst[#lst+1] = '</body></html>'
+	if filename:match('^list$') or filename:match('^list%..*$') then
+		local lst,sizes = list_file()
+		local num = 1
+		local ishtml = extention == 'html' or extention == 'htm'
+		if ishtml then
+			for i,name in pairs(lst) do
+				lst[i] = ('<a href="%s">%s</a>%s<br>\n'):format(name, name, sizes[name])
+			end
+			lst[0] = '<html><body>\n'
+			num = 0
+			lst[#lst+1] = '</body></html>'
+		else
+			for i,name in pairs(lst) do
+				lst[i] = ('%s\t%s\n'):format(name, sizes[name])
+			end
+		end
 
-		local num = 0
 		sck:on('sent', function(lsck)
 			if num > #lst then lsck:close() return end
-			lsck:send(('<a href="%s">%s</a><br/>\n'):format(lst[num], lst[num]))
+			lsck:send(lst[num])
 			num = num + 1
 		end)
-		sck:send(ok_headers_template:format('text/html'))
+		sck:send(ok_headers_template:format(ctype(extention)))
+		
+	elseif filename:match('^list_data') then
+		local lst,sizes = list_file('^d.*\.csv')
+		local ishtml = extention == 'html' or extention == 'htm'
+		table.sort(lst, function(a,b) return a > b end)
+		local num = 1
+		if ishtml then
+			for i,name in pairs(lst) do
+				lst[i] = ('<a href="%s">%s</a>%s<br>\n'):format(name, name, sizes[name])
+			end
+			lst[0] = '<html><body>'
+			num = 0
+			lst[#lst+1] = '</body></html>'
+		end
+		sck:on('sent', function(lsck)
+			if num > #lst then lsck:close() return end
+			lsck:send(lst[num]..'\n')
+			num = num + 1
+		end)
+		sck:send(ok_headers_template:format('text/plain'))
+		
+	elseif filename == 'startnew' and not datafile then
+		local dt = rtctime.epoch2cal(rtctime.get())
+		local name = ('d%04d%02d%02d%02d%02d.csv'):format(dt.year, dt.mon, dt.day, dt.hour, dt.min)
+		datafile = file.open(name, 'w')
+		sck:on('sent', function(lsck) sck:close() end)
+		sck:send(ok_headers_template:format('text/plain')..name)
+
+	elseif filename == 'stopnew' and datafile then
+		datafile:close()
+		datafile = nil
+		measurements = 0
+		sck:on('sent', function(lsck) sck:close() end)
+		sck:send(ok_headers_template:format('text/plain')..'END')
+
 	elseif filename:match('^settime\.%d+') then
 		rtctime.set(extention)
-		sck:close()
-		return
+		local dt = rtctime.epoch2cal(rtctime.get())
+		sck:on('sent', function(lsck) sck:close() end)
+		sck:send(ok_headers_template:format('text/plain')..
+				 ('%02d.%02d.%04d %02d:%02d\n'):format(dt.day, dt.mon, dt.year, dt.hour, dt.min))
+		
 	else
 	    local dfile = file.open(filename)
 	    if not dfile then
 		    sck:on('sent', function(s) s:close() end)
 		    sck:send(notfound)
-		    return
-	    end
-	    sck:on('sent', function(lsck)
-		    local data = dfile:read()
-		    if data then
-			    lsck:send(data)
-		    else
-			    lsck:close()
-			    dfile:close()
-		    end
-	    end)
-	    sck:send(ok_headers_template:format(ctype(extention)))
+		else
+			sck:on('sent', function(lsck)
+				local data = dfile:read()
+				if data then
+					lsck:send(data)
+				else
+					lsck:close()
+					dfile:close()
+				end
+			end)
+			sck:send(ok_headers_template:format(ctype(extention)))
+		end
     end
 end
 
