@@ -103,6 +103,7 @@ let screen_data_step = 1;
 image.setAttribute('width', imageWidth);
 image.setAttribute('height', imageHeight);
 
+// заполнение селектора файлов списком оных
 let datafile = document.getElementById('datafile');
 let xhr = new XMLHttpRequest();
 xhr.open('GET', 'list_datafiles');
@@ -121,7 +122,7 @@ xhr.onload = function() {
 	}
 	getData(datafile.value);
 }
-datafile.onchange = function() { getData('http://192.168.4.1/'+this.value); }
+datafile.onchange = function() { getData(this.value); }
 
 let co2min_input = document.getElementById('co2min');
 let co2max_input = document.getElementById('co2max');
@@ -155,10 +156,25 @@ tmax_input.onchange = function () {
 drawAxis();
 //getData('http://192.168.4.1/' + datafile.value);
 
+function redraw() {
+	for (let s of this.response.split('\n')) {
+		if (!s || s.startsWith('#') || !parseFloat(s)) continue;
+		marr.push(s.split(',').map(parseFloat));
+	}
+	let last = 400;		// фильтрация от глюков датчика - иногда дает явно левые низкие показания
+	for (let i = 0; i < marr.length; i++) {
+		if (marr[i][0] < 200) marr[i][0] = last;
+		else last = marr[i][0];
+	}
+	drawData(0, 'co2ppm');
+	drawData(1, 'temperature');
+}
+
 function getData(url) {
 	let xhr = new XMLHttpRequest();
 	xhr.open('GET', url);
 	xhr.send()
+	marr = []
 
 	xhr.onload = function() {
 		if (xhr.status != 200) {
@@ -166,18 +182,9 @@ function getData(url) {
 			return
 		}
 		marr = [];
-		for (let s of xhr.response.split('\n')) {
-			if (!s || s.startsWith('#') || !parseFloat(s)) continue;
-			marr.push(s.split(',').map(parseFloat));
-		}
-		let last = 400;		// фильтрация от глюков датчика - иногда дает явно левые низкие показания
-		for (let i = 0; i < marr.length; i++) {
-			if (marr[i][0] < 200) marr[i][0] = last;
-			else last = marr[i][0];
-		}
-		drawData(0, 'co2ppm');
-		drawData(1, 'temperature');
+		redraw.bind(this)();
 	}
+	xhr.onprogress = redraw;
 }
 
 function median(arr) {
@@ -315,7 +322,7 @@ function drawAxis() {
 function setTime() {
 	let dt = new Date()
 	let xhr = new XMLHttpRequest();
-	xhr.open('GET', 'http://192.168.4.1/' + 'settime.' +
+	xhr.open('GET', 'settime.' +
 					String((dt/1000|0) - dt.getTimezoneOffset()*60));
 	xhr.send()
 }
@@ -333,6 +340,7 @@ function startNew() {
 			let newOption = document.createElement('option');
 			newOption.innerHTML = xhr.response;
 			datafile.insertBefore(newOption, datafile.children[0]);
+			newOption.selected = true;
 		}
 		getData(datafile.value);
 	}

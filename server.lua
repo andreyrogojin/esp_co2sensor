@@ -91,11 +91,15 @@ function receiver(sck, data)
 		local name = ('d%04d%02d%02d%02d%02d.csv'):format(dt.year, dt.mon, dt.day, dt.hour, dt.min)
 		datafile = file.open(name, 'w')
 		sck:on('sent', function(lsck) sck:close() end)
-		sck:send(ok_headers_template:format('text/plain')..name)
+		sck:send(ok_headers_template:format('text/plain')..name..'\n')
 
 	elseif filename == 'stopnew' and datafile then
 		datafile:close()
 		datafile = nil
+		if datasocket then
+			datasocket:close()
+			datasocket = nil
+		end
 		measurements = 0
 		sck:on('sent', function(lsck) sck:close() end)
 		sck:send(ok_headers_template:format('text/plain')..'END')
@@ -114,12 +118,20 @@ function receiver(sck, data)
 		    sck:send(notfound)
 		else
 			sck:on('sent', function(lsck)
+				if not dfile then
+					if not datafile then
+						lsck:close()
+					else
+						datasocket = lsck
+					end
+					return
+				end
 				local data = dfile:read()
 				if data then
 					lsck:send(data)
 				else
-					lsck:close()
 					dfile:close()
+					dfile = nil
 				end
 			end)
 			sck:send(ok_headers_template:format(ctype(extention)))

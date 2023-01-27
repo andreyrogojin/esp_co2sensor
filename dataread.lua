@@ -26,9 +26,14 @@ function readdata()
 		end
 		datafile:writeline(('%d,%d,%d'):format(co2, temp, humi))
 		measurements = measurements + 1
+		if datasocket then
+			datasocket:send(('%d,%d,%d\n'):format(co2, temp, humi))
+		end
 		if measurements > 720 then
 			datafile:close()
 			datafile = nil
+			datasocket:close()
+			datasocket = nil
 			measurements = 0
 		end
 	end
