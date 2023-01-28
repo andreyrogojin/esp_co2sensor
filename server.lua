@@ -33,14 +33,16 @@ srv = net.createServer(net.TCP)
 
 function receiver(sck, data)
 	-- print(data)
-	local url = data:match('^GET (.+) HTTP/')
+	local url = data:match('^GET (.+) HTTP/') or data:match('^POST (.+) HTTP/')
+	if not url then sck:close() return end
 	local filename = url:match('^.*/([^/]+)$')
 	local extention = url:match('^.*/[^/]+[.]([^/]+)$')
+	local payload = data:match('.*\r?\n\r?\n(.*)$')
 	if not filename then
 		filename = 'graf.html'
 		extention = 'html'
 	end
-	-- print(url, filename, extention)
+	print(url, payload)
 
 	if filename:match('^list$') or filename:match('^list%..*$') then
 		local lst,sizes = list_file()
@@ -84,7 +86,7 @@ function receiver(sck, data)
 			lsck:send(lst[num]..'\n')
 			num = num + 1
 		end)
-		sck:send(ok_headers_template:format('text/plain'))
+		sck:send(ok_headers_template:format(ctype(extention)))
 		
 	elseif filename == 'startnew' and not datafile then
 		local dt = rtctime.epoch2cal(rtctime.get())
@@ -101,7 +103,7 @@ function receiver(sck, data)
 			datasocket = nil
 		end
 		measurements = 0
-		sck:on('sent', function(lsck) sck:close() end)
+		sck:on('sent', function(lsck) lsck:close() end)
 		sck:send(ok_headers_template:format('text/plain')..'END')
 
 	elseif filename:match('^settime\.%d+') then
@@ -110,6 +112,13 @@ function receiver(sck, data)
 		sck:on('sent', function(lsck) sck:close() end)
 		sck:send(ok_headers_template:format('text/plain')..
 				 ('%02d.%02d.%04d %02d:%02d\n'):format(dt.day, dt.mon, dt.year, dt.hour, dt.min))
+	
+	elseif filename == 'getcurrent' and datafile then
+		sck:on('sent', function(s)
+			s:on('sent', nil)
+			datasocket = s
+		end)
+		sck:send(ok_headers_template:format('text/csv'))
 		
 	else
 	    local dfile = file.open(filename)
@@ -123,9 +132,7 @@ function receiver(sck, data)
 					lsck:send(data)
 				else
 					dfile:close()
-					dfile = nil
-					lsck:on('sent', nil)
-					if datafile then datasocket = lsck else lsck:close() end
+					lsck:close()
 				end
 			end)
 			sck:send(ok_headers_template:format(ctype(extention)))

@@ -63,14 +63,11 @@ label {
 </figure>
 <div>
 	<label> Файл для отображения:
-		<select id="datafile">
+		<select id="datafile" class="onNotRecord">
 		</select>
 	</label>
-	<button onclick="startNew()">
+	<button onclick="startNew()" class="onNotRecord">
 		Запись нового файла.
-	</button>
-	<button onclick="getData(datafile.value)">
-		Обновить.
 	</button>
 	<button onclick="stopNew()">
 		Завершить запись.
@@ -128,6 +125,7 @@ let co2min_input = document.getElementById('co2min');
 let co2max_input = document.getElementById('co2max');
 let tmin_input = document.getElementById('tmin');
 let tmax_input = document.getElementById('tmax');
+let onNotRecordList = document.getElementsByClassName('onNotRecord');
 
 co2min_input.onchange = function () {
 	if (+co2max_input.value < +this.value + 2)
@@ -154,13 +152,14 @@ tmax_input.onchange = function () {
 }
 
 drawAxis();
-//getData('http://192.168.4.1/' + datafile.value);
 
 function redraw() {
 	marr = []
 	for (let s of this.responseText.split('\n')) {
-		if (!s || s.startsWith('#') || !parseFloat(s)) continue;
-		marr.push(s.split(',').map(parseFloat));
+		if (!s || s.startsWith('#')) continue;
+		let dataline = s.split(',').map(parseFloat);
+		if (dataline.length != 3 || dataline.some(isNaN)) continue;
+		marr.push(dataline);
 	}
 	let last = 400;		// фильтрация от глюков датчика - иногда дает явно левые низкие показания
 	for (let i = 0; i < marr.length; i++) {
@@ -176,14 +175,6 @@ function getData(url) {
 	xhr.open('GET', url);
 	xhr.send()
 
-	xhr.onload = function() {
-		if (xhr.status != 200) {
-			alert(`Ошибка ${xhr.status}: ${xhr.statusText}`);
-			return
-		}
-		marr = [];
-		redraw.bind(this)();
-	}
 	xhr.onprogress = redraw;
 }
 
@@ -328,6 +319,7 @@ function setTime() {
 }
 
 function startNew() {
+	for (let e of onNotRecordList) e.disabled = true;
 	let xhr = new XMLHttpRequest();
 	xhr.open('GET', 'startnew');
 	xhr.send()
@@ -342,11 +334,12 @@ function startNew() {
 			datafile.insertBefore(newOption, datafile.children[0]);
 			newOption.selected = true;
 		}
-		getData(datafile.value);
+		getData('getcurrent');
 	}
 }
 
 function stopNew() {
+	for (let e of onNotRecordList) e.disabled = false;
 	let xhr = new XMLHttpRequest();
 	xhr.open('GET', 'stopnew');
 	xhr.send()
