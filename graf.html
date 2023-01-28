@@ -157,7 +157,8 @@ drawAxis();
 //getData('http://192.168.4.1/' + datafile.value);
 
 function redraw() {
-	for (let s of this.response.split('\n')) {
+	marr = []
+	for (let s of this.responseText.split('\n')) {
 		if (!s || s.startsWith('#') || !parseFloat(s)) continue;
 		marr.push(s.split(',').map(parseFloat));
 	}
@@ -174,7 +175,6 @@ function getData(url) {
 	let xhr = new XMLHttpRequest();
 	xhr.open('GET', url);
 	xhr.send()
-	marr = []
 
 	xhr.onload = function() {
 		if (xhr.status != 200) {

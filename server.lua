@@ -118,20 +118,14 @@ function receiver(sck, data)
 		    sck:send(notfound)
 		else
 			sck:on('sent', function(lsck)
-				if not dfile then
-					if not datafile then
-						lsck:close()
-					else
-						datasocket = lsck
-					end
-					return
-				end
 				local data = dfile:read()
 				if data then
 					lsck:send(data)
 				else
 					dfile:close()
 					dfile = nil
+					lsck:on('sent', nil)
+					if datafile then datasocket = lsck else lsck:close() end
 				end
 			end)
 			sck:send(ok_headers_template:format(ctype(extention)))
