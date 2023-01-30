@@ -37,9 +37,6 @@ function readdata()
 			measurements = 0
 		end
 	end
-	if datasocket then
-		datasocket:send(('%d,%d,%d'):format(co2, temp, humi))
-	end
 end
 
 rdtimer = tmr.create()
