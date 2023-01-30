@@ -42,7 +42,7 @@ function receiver(sck, data)
 		filename = 'graf.html'
 		extention = 'html'
 	end
-	print(url, payload)
+	-- print(url, payload)
 
 	if filename:match('^list$') or filename:match('^list%..*$') then
 		local lst,sizes = list_file()

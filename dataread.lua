@@ -13,21 +13,21 @@ scd40:start_periodic_measurement()
 
 measurements = 0
 function readdata()
-	local co2, temp, humi = scd40:read_data()
+	local co2, temp, humi, temp_dec = scd40:read_data()
 	ind:showStr(('%4d'):format(co2))
 	
 	if datafile then
 		if measurements == 0 then
 			local dt = rtctime.epoch2cal(rtctime.get())
-			datafile:writeline(('#Start: %2d.%2d.%4d %2d:%2d')
+			datafile:writeline(('#Start: %02d.%02d.%4d %2d:%02d')
 						:format(dt.day, dt.mon, dt.year, dt.hour, dt.min))
 			datafile:writeline('#Interval: 5s')
-			datafile:writeline('co2ppm,temperature,humidity')
+			datafile:writeline('co2ppm,t,Rh')
 		end
-		datafile:writeline(('%d,%d,%d'):format(co2, temp, humi))
+		datafile:writeline(('%d,%d.%d,%d'):format(co2, temp, temp_dec, humi))
 		measurements = measurements + 1
 		if datasocket then
-			datasocket:send(('%d,%d,%d\n'):format(co2, temp, humi))
+			datasocket:send(('%d,%d.%d,%d\n'):format(co2, temp, temp_dec, humi))
 		end
 		if measurements > 720 then
 			datafile:close()

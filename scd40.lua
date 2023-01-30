@@ -100,23 +100,23 @@ end
 
 local function read_data(self)
     local res
-    local co2ppm = '!crc'
-    local t = '!crc'
-    local rh = '!crc'
+    local co2ppm = 9999
+    local t = 9999
+	local t_dec = 9
+    local rh = 9999
 	res = read_measurement(self)
     if check_crc(res:sub(1,3)) then
-    	-- co2ppm = tonumber(('%x%x'):format(res:byte(1,2)), 16)
     	co2ppm = struct.unpack('>I2', res)
     end
 	if check_crc(res:sub(4,6)) then
-        -- t = tonumber(('%02x%02x'):format(res:byte(4,5)), 16) * 175 / 0xffff - 45
-        t = struct.unpack('>I2', res, 4) * 175 / 0xffff - 45
+        local t10 = struct.unpack('>I2', res, 4) * 1750 / 0xffff - 450
+		t = t10 / 10
+		t_dec = t10 % 10
     end
     if check_crc(res:sub(7,9)) then
-        -- rh = tonumber(('%02x%02x'):format(res:byte(7,8)), 16) * 100 / 0xffff
         rh = struct.unpack('>I2', res, 7) * 100 / 0xffff
     end
-	return co2ppm, t, rh
+	return co2ppm, t, rh, t_dec
 end
 
 local function init(self, i2c_id)
