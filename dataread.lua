@@ -32,8 +32,11 @@ function readdata()
 		if measurements > 720 then
 			datafile:close()
 			datafile = nil
-			datasocket:close()
-			datasocket = nil
+			dfname = nil
+			if datasocket then
+				datasocket:close()
+				datasocket = nil
+			end
 			measurements = 0
 		end
 	end

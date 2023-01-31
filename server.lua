@@ -90,14 +90,15 @@ function receiver(sck, data)
 		
 	elseif filename == 'startnew' and not datafile then
 		local dt = rtctime.epoch2cal(rtctime.get())
-		local name = ('d%04d%02d%02d%02d%02d.csv'):format(dt.year, dt.mon, dt.day, dt.hour, dt.min)
-		datafile = file.open(name, 'w')
+		dfname = ('d%04d%02d%02d%02d%02d.csv'):format(dt.year, dt.mon, dt.day, dt.hour, dt.min)
+		datafile = file.open(dfname, 'w')
 		sck:on('sent', function(lsck) sck:close() end)
-		sck:send(ok_headers_template:format('text/plain')..name..'\n')
+		sck:send(ok_headers_template:format('text/plain')..dfname..'\n')
 
 	elseif filename == 'stopnew' and datafile then
 		datafile:close()
 		datafile = nil
+		dfname = nil
 		if datasocket then
 			datasocket:close()
 			datasocket = nil
@@ -133,7 +134,12 @@ function receiver(sck, data)
 					lsck:send(data)
 				else
 					dfile:close()
-					lsck:close()
+					if filename == dfname then
+						datasocket = lsck
+						datasocket:on('sent', nil)
+					else
+						lsck:close()
+					end
 				end
 			end)
 			sck:send(ok_headers_template:format(ctype(extention)))
