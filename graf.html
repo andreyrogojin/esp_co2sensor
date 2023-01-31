@@ -72,6 +72,9 @@ label {
 	<button onclick="stopNew()">
 		Завершить запись.
 	</button>
+	<a id="dlButton"><button>
+		Загрузить файл.
+		</button></a>
 </div>
 <label> CO<sub>2 min</sub>:
 	<input id="co2min" type="number" value="300" min="0" max="1000" size="2"/>
@@ -102,6 +105,7 @@ image.setAttribute('height', imageHeight);
 
 // заполнение селектора файлов списком оных
 let datafile = document.getElementById('datafile');
+let dlButton = document.getElementById('dlButton');
 let xhr = new XMLHttpRequest();
 xhr.open('GET', 'list_datafiles');
 xhr.send()
@@ -117,9 +121,13 @@ xhr.onload = function() {
 			datafile.appendChild(newOption);
 		}
 	}
+	dlButton.href = datafile.value;
 	getData(datafile.value);
 }
-datafile.onchange = function() { getData(this.value); }
+datafile.onchange = function() {
+	dlButton.href = this.value;
+	getData(this.value);
+}
 
 let co2min_input = document.getElementById('co2min');
 let co2max_input = document.getElementById('co2max');
@@ -334,6 +342,7 @@ function startNew() {
 			datafile.insertBefore(newOption, datafile.children[0]);
 			newOption.selected = true;
 		}
+		dlButton.href = datafile.value;
 		getData('getcurrent');
 	}
 }
