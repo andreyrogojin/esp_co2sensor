@@ -117,7 +117,7 @@ function receiver(sck, data)
 		sck:on('sent', function(s)
 			s:on('sent', nil)
 			datasocket = s
-			s:on('disconnection', function(s) datasocket = nil s:close() end)
+			s:on('disconnection', function(s) datasocket = nil end)
 		end)
 		sck:send(ok_headers_template:format('text/csv'))
 		
