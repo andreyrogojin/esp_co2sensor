@@ -6,7 +6,19 @@ scd40:init(0)
 
 i2c.setup(1,1,4,i2c.SLOW)	-- indicator
 ind = require"tm1637"
-ind:init(1, 5, '0000')
+ind:init(1, 4, '0000')
+itimer = tmr.create()
+k1 = 0
+itimer:alarm(100, tmr.ALARM_AUTO, function()
+	local key = ind:readKeysAndUpdate()
+	if not key and k1 > 0 then
+		if k1 < 5 then ind:setDcode(5,0x80)
+		else ind:setDcode(5,0x0)
+		end
+		k1 = 0
+	end
+	if key == 1 then k1 = k1+1 end
+end)
 
 scd40:set_automatic_self_calibration_enabled(false)
 scd40:start_periodic_measurement()
@@ -14,7 +26,7 @@ scd40:start_periodic_measurement()
 measurements = 0
 function readdata()
 	local co2, temp, humi, temp_dec = scd40:read_data()
-	ind:showStr(('%4d'):format(co2))
+	ind:setStr(('%4d'):format(co2))
 	
 	if datafile then
 		if measurements == 0 then

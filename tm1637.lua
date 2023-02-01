@@ -39,73 +39,83 @@ local keyCodesR = { [0xef]=1, [0x6f]=2, [0xaf]=3, [0x2f]=4, [0xcf]=5, [0x4f]=6, 
              [0xf7]=9, [0x77]=10, [0xb7]=11, [0x37]=12, [0xd7]=13, [0x57]=14, [0x97]=15, [0x17]=16 }
 
 local function setLuminance(self, lum)
-  lum = lum or 3
-  i2c.start(self.id)
-  i2c.write(self.id,0x02)
-  i2c.stop(self.id)
-  i2c.start(self.id)
-  i2c.write(self.id,lumCodes[lum])
-  i2c.stop(self.id)
+	self.lumCode = lumCodes[lum]
+	self.needUpdateLum = true
 end
 
-local function showDCodes(self, pos, len)
-  local p = pos or 1
-  local l = len or 1
+local function updateLum(self, lum)
+  i2c.start(self.id)
+  i2c.write(self.id,self.lumCode)
+  i2c.stop(self.id)
+  self.needUpdateLum = false
+end
+
+local function updateInd(self)
   i2c.start(self.id)
   i2c.write(self.id,0x02)
   i2c.stop(self.id)
   i2c.start(self.id)
-  i2c.write(self.id, posCodes[p])
-  for i = p, p+l-1 do
+  i2c.write(self.id, posCodes[1])
+  for i = 1,6 do
     i2c.write(self.id, self.dCodes[i])
   end
   i2c.stop(self.id)
+  self.needUpdateInd = false
 end
 
-local function showStr(self, str, pos)
+local function setDcode(self, pos, code)
+	self.dCodes[pos] = code
+	self.needUpdateInd = true
+end
+
+local function setStr(self, str, pos)
   local len = str:len()
   local p = pos or 1
   if len + p > 7 then len = 7 - p end
   for i = 1, len do
-    self.dCodes[i+p-1] = zn[str:sub(i,i)] or 0
+    setDcode(self, i+p-1, zn[str:sub(i,i)] or 0)
   end
-  showDCodes(self, pos, len)
 end
 
 local function colon(self, show) -- 1 show, 0 hide, 2 toggle
   if self.dCodes[2] % 2 == 1 then
     if show == 0 or show == 2 then
-      self.dCodes[2] = self.dCodes[2] - 1
+	  setDcode(self, 2, self.dCodes[2] - 1)
     end
   else
     if show == 1 or show == 2 then
-      self.dCodes[2] = self.dCodes[2] + 1
+	  setDcode(self, 2, self.dCodes[2] + 1)
     end
   end
-  showDCodes(self,2)
 end
 
-local function readKeys(self)
+local function readKeysAndUpdate(self)
+  if self.needUpdateInd then updateInd(self) end
+  if self.needUpdateLum then updateLum(self) end
   i2c.start(self.id)
   i2c.write(self.id,0x42)
   local keyCode = i2c.read(self.id,1)
   i2c.stop(self.id)
-  return(keyCodesR[keyCode:byte()])
+  return keyCodesR[keyCode:byte()]
 end
 
 local function init(self, i2c_id, lum, str)
   self.id = i2c_id
   self:setLuminance(lum)
-  self:showStr(str or "      ")
+  self:setStr(str or "      ")
 end
 
-return({
+return {
   id = 0,
+  needUpdateInd = false,
+  needUpdateLum = false,
   dCodes = { 0,0,0,0,0,0 },
+  lumCode = 0x1,
   setLuminance = setLuminance,
-  showStr = showStr,
+  setDcode = setDcode,
+  setStr = setStr,
   colon = colon,
-  readKeys = readKeys,
+  readKeysAndUpdate = readKeysAndUpdate,
   init = init
-})
+}
 
