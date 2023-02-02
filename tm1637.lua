@@ -56,7 +56,7 @@ local function updateInd(self)
   i2c.stop(self.id)
   i2c.start(self.id)
   i2c.write(self.id, posCodes[1])
-  for i = 1,6 do
+  for i = 1,5 do
     i2c.write(self.id, self.dCodes[i])
   end
   i2c.stop(self.id)
