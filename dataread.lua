@@ -8,16 +8,19 @@ i2c.setup(1,1,4,i2c.SLOW)	-- indicator
 ind = require"tm1637"
 ind:init(1, 4, '0000')
 itimer = tmr.create()
-k1 = 0
-itimer:alarm(100, tmr.ALARM_AUTO, function()
+itimer:alarm(200, tmr.ALARM_AUTO, function()
 	local key = ind:readKeysAndUpdate()
-	if not key and k1 > 0 then
-		if k1 < 5 then ind:setDcode(5,0x80)
-		else ind:setDcode(5,0x0)
+	-- print(key or 0)
+	if key == 1 then
+		if not k1wasPressed then
+			if ind.dCodes[5] == 0x80 then ind:setDcode(5,0x0)
+			else ind:setDcode(5,0x80)
+			end
+			k1wasPressed = true
 		end
-		k1 = 0
+	else
+		k1wasPressed = false
 	end
-	if key == 1 then k1 = k1+1 end
 end)
 
 scd40:set_automatic_self_calibration_enabled(false)
