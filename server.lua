@@ -116,14 +116,6 @@ function receiver(sck, data)
 		sck:send(ok_headers_template:format('text/plain')..
 				 ('%02d.%02d.%04d %02d:%02d\n'):format(dt.day, dt.mon, dt.year, dt.hour, dt.min))
 	
-	elseif filename == 'getcurrent' and datafile then
-		sck:on('sent', function(s)
-			s:on('sent', nil)
-			datasocket = s
-			s:on('disconnection', function(s) datasocket = nil end)
-		end)
-		sck:send(ok_headers_template:format('text/csv'))
-		
 	else
 	    local dfile = file.open(filename)
 	    if not dfile then
@@ -139,6 +131,7 @@ function receiver(sck, data)
 					if filename == dfname then
 						datasocket = lsck
 						datasocket:on('sent', nil)
+						datasocket:on('disconnection', function(s) datasocket = nil end)
 					else
 						lsck:close()
 					end
