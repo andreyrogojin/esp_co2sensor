@@ -177,12 +177,12 @@ function redraw() {
 	drawData(1, 'temperature');
 }
 
+let cf_xhr = new XMLHttpRequest();
+cf_xhr.onprogress = redraw;
 function getData(url) {
-	let xhr = new XMLHttpRequest();
-	xhr.open('GET', url);
-	xhr.send()
-
-	xhr.onprogress = redraw;
+	cf_xhr.abort();
+	cf_xhr.open('GET', url);
+	cf_xhr.send()
 }
 
 function median(arr) {
@@ -351,7 +351,6 @@ function startNew() {
 }
 
 function stopNew() {
-	for (let e of onNotRecordList) e.disabled = false;
 	let xhr = new XMLHttpRequest();
 	xhr.open('GET', 'stopnew');
 	xhr.send()

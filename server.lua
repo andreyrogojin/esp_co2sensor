@@ -95,7 +95,7 @@ function receiver(sck, data)
 			datafile = file.open(dfname, 'w')
 		end
 		sck:on('sent', function(lsck) sck:close() end)
-		sck:send(ok_headers_template:format('text/plain')..dfname..'\n')
+		sck:send(ok_headers_template:format('text/plain')..dfname)
 
 	elseif filename == 'stopnew' and datafile then
 		datafile:close()
