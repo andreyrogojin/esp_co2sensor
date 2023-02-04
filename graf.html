@@ -75,6 +75,9 @@ label {
 	<a id="dlButton"><button>
 		Загрузить файл.
 		</button></a>
+	<button onclick="delFile()">
+		Удалить файл.
+	</button>
 </div>
 <label> CO<sub>2 min</sub>:
 	<input id="co2min" type="number" value="300" min="0" max="1000" size="2"/>
@@ -353,7 +356,20 @@ function startNew() {
 function stopNew() {
 	let xhr = new XMLHttpRequest();
 	xhr.open('GET', 'stopnew');
-	xhr.send()
+	xhr.send();
+}
+
+function delFile() {
+	let nextSelected = (datafile.selectedOptions[0].nextElementSibling
+						|| datafile.selectedOptions[0].previousElementSibling)
+
+	let xhr = new XMLHttpRequest();
+	xhr.open('POST', 'delete');
+	xhr.send(datafile.value);
+
+	datafile.selectedOptions[0].remove()
+	if (nextSelected) nextSelected.selected = true;
+	datafile.onchange()
 }
 
 function drawData(column, plineId) {

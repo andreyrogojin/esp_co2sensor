@@ -115,6 +115,9 @@ function receiver(sck, data)
 		sck:on('sent', function(lsck) sck:close() end)
 		sck:send(ok_headers_template:format('text/plain')..
 				 ('%02d.%02d.%04d %02d:%02d\n'):format(dt.day, dt.mon, dt.year, dt.hour, dt.min))
+
+	elseif filename == 'delete' and payload then
+		file.remove(payload)
 	
 	else
 	    local dfile = file.open(filename)
