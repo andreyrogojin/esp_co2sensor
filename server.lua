@@ -88,10 +88,12 @@ function receiver(sck, data)
 		end)
 		sck:send(ok_headers_template:format(ctype(extention)))
 		
-	elseif filename == 'startnew' and not datafile then
-		local dt = rtctime.epoch2cal(rtctime.get())
-		dfname = ('d%04d%02d%02d%02d%02d.csv'):format(dt.year, dt.mon, dt.day, dt.hour, dt.min)
-		datafile = file.open(dfname, 'w')
+	elseif filename == 'startnew' then
+		if not datafile then
+			local dt = rtctime.epoch2cal(rtctime.get())
+			dfname = ('d%04d%02d%02d%02d%02d.csv'):format(dt.year, dt.mon, dt.day, dt.hour, dt.min)
+			datafile = file.open(dfname, 'w')
+		end
 		sck:on('sent', function(lsck) sck:close() end)
 		sck:send(ok_headers_template:format('text/plain')..dfname..'\n')
 

@@ -63,10 +63,10 @@ label {
 </figure>
 <div>
 	<label> Файл для отображения:
-		<select id="datafile" class="onNotRecord">
+		<select id="datafile">
 		</select>
 	</label>
-	<button onclick="startNew()" class="onNotRecord">
+	<button onclick="startNew()">
 		Запись нового файла.
 	</button>
 	<button onclick="stopNew()">
@@ -133,7 +133,6 @@ let co2min_input = document.getElementById('co2min');
 let co2max_input = document.getElementById('co2max');
 let tmin_input = document.getElementById('tmin');
 let tmax_input = document.getElementById('tmax');
-let onNotRecordList = document.getElementsByClassName('onNotRecord');
 
 co2min_input.onchange = function () {
 	if (+co2max_input.value < +this.value + 2)
@@ -327,7 +326,6 @@ function setTime() {
 }
 
 function startNew() {
-	for (let e of onNotRecordList) e.disabled = true;
 	let xhr = new XMLHttpRequest();
 	xhr.open('GET', 'startnew');
 	xhr.send()
@@ -336,12 +334,17 @@ function startNew() {
 			alert(`Ошибка ${xhr.status}: ${xhr.statusText}`);
 			return
 		}
-		if (xhr.response) {
-			let newOption = document.createElement('option');
-			newOption.innerHTML = xhr.response;
-			datafile.insertBefore(newOption, datafile.children[0]);
-			newOption.selected = true;
-		}
+		if (xhr.response)
+			if (!datafile.innerText.match(xhr.response)) {
+				let newOption = document.createElement('option');
+				newOption.innerHTML = xhr.response;
+				datafile.insertBefore(newOption, datafile.children[0]);
+				newOption.selected = true;
+			} else {
+				for (let op of datafile.children)
+					if (op.value == xhr.response)
+						op.selected = true;
+			}
 		dlButton.href = datafile.value;
 		getData('getcurrent');
 	}
