@@ -29,6 +29,33 @@ function list_file(template)
 	return lst,sizes
 end
 
+function newDatafile()
+	if not datafile then
+		local dt = rtctime.epoch2cal(rtctime.get())
+		dfname = ('d%04d%02d%02d%02d%02d.csv'):format(dt.year, dt.mon, dt.day, dt.hour, dt.min)
+		datafile = file.open(dfname, 'w')
+		datafile:writeline(('#Start: %02d.%02d.%4d %2d:%02d')
+						:format(dt.day, dt.mon, dt.year, dt.hour, dt.min))
+		datafile:writeline('#Interval: 5s')
+		datafile:writeline('co2ppm,t,Rh')
+		ind:setDcode(5,0x80)
+	end
+end
+
+function stopRecord()
+	if datafile then 
+		datafile:close()
+		datafile = nil
+		dfname = nil
+		if datasocket then
+			datasocket:close()
+			datasocket = nil
+		end
+		measurements = 0
+		ind:setDcode(5,0x0)
+	end
+end
+
 srv = net.createServer(net.TCP)
 
 function receiver(sck, data)
@@ -44,43 +71,10 @@ function receiver(sck, data)
 	end
 	-- print(url, payload)
 
-	if filename:match('^list$') or filename:match('^list%..*$') then
-		local lst,sizes = list_file()
-		local num = 1
-		local ishtml = extention == 'html' or extention == 'htm'
-		if ishtml then
-			for i,name in pairs(lst) do
-				lst[i] = ('<a href="%s">%s</a>%s<br>\n'):format(name, name, sizes[name])
-			end
-			lst[0] = '<html><body>\n'
-			num = 0
-			lst[#lst+1] = '</body></html>'
-		else
-			for i,name in pairs(lst) do
-				lst[i] = ('%s\t%s\n'):format(name, sizes[name])
-			end
-		end
-
-		sck:on('sent', function(lsck)
-			if num > #lst then lsck:close() return end
-			lsck:send(lst[num])
-			num = num + 1
-		end)
-		sck:send(ok_headers_template:format(ctype(extention)))
-		
-	elseif filename:match('^list_data') then
+	if filename:match('^list_data') then
 		local lst,sizes = list_file('^d.*\.csv')
-		local ishtml = extention == 'html' or extention == 'htm'
 		table.sort(lst, function(a,b) return a > b end)
 		local num = 1
-		if ishtml then
-			for i,name in pairs(lst) do
-				lst[i] = ('<a href="%s">%s</a>%s<br>\n'):format(name, name, sizes[name])
-			end
-			lst[0] = '<html><body>'
-			num = 0
-			lst[#lst+1] = '</body></html>'
-		end
 		sck:on('sent', function(lsck)
 			if num > #lst then lsck:close() return end
 			lsck:send(lst[num]..'\n')
@@ -89,23 +83,12 @@ function receiver(sck, data)
 		sck:send(ok_headers_template:format(ctype(extention)))
 		
 	elseif filename == 'startnew' then
-		if not datafile then
-			local dt = rtctime.epoch2cal(rtctime.get())
-			dfname = ('d%04d%02d%02d%02d%02d.csv'):format(dt.year, dt.mon, dt.day, dt.hour, dt.min)
-			datafile = file.open(dfname, 'w')
-		end
+		newDatafile()
 		sck:on('sent', function(lsck) sck:close() end)
 		sck:send(ok_headers_template:format('text/plain')..dfname)
 
-	elseif filename == 'stopnew' and datafile then
-		datafile:close()
-		datafile = nil
-		dfname = nil
-		if datasocket then
-			datasocket:close()
-			datasocket = nil
-		end
-		measurements = 0
+	elseif filename == 'stopnew' then
+		stopRecord()
 		sck:on('sent', function(lsck) lsck:close() end)
 		sck:send(ok_headers_template:format('text/plain')..'END')
 
