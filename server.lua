@@ -32,25 +32,23 @@ end
 function newDatafile()
 	if not datafile then
 		local dt = rtctime.epoch2cal(rtctime.get())
-		dfname = ('d%04d%02d%02d%02d%02d.csv'):format(dt.year, dt.mon, dt.day, dt.hour, dt.min)
-		datafile = file.open(dfname, 'w')
-		datafile:writeline(('#Start: %02d.%02d.%4d %2d:%02d')
-						:format(dt.day, dt.mon, dt.year, dt.hour, dt.min))
-		datafile:writeline('#Interval: 5s')
-		datafile:writeline('co2ppm,t,Rh')
+		datafile = {}
+		datafile.name = (('d%04d%02d%02d%02d%02d.csv')
+							:format(dt.year, dt.mon, dt.day, dt.hour, dt.min))
+		datafile.fd = file.open(dfname, 'w')
+		datafile.fd:writeline(('#Start: %02d.%02d.%4d %2d:%02d')
+							:format(dt.day, dt.mon, dt.year, dt.hour, dt.min))
+		datafile.fd:writeline('#Interval: 5s')
+		datafile.fd:writeline('co2ppm,t,Rh')
 		ind:setDcode(5,0x80)
 	end
 end
 
 function stopRecord()
 	if datafile then 
-		datafile:close()
+		datafile.fd:close()
+		if datafile.socket then datafile.socket:close() end
 		datafile = nil
-		dfname = nil
-		if datasocket then
-			datasocket:close()
-			datasocket = nil
-		end
 		measurements = 0
 		ind:setDcode(5,0x0)
 	end
@@ -100,7 +98,9 @@ function receiver(sck, data)
 				 ('%02d.%02d.%04d %02d:%02d\n'):format(dt.day, dt.mon, dt.year, dt.hour, dt.min))
 
 	elseif filename == 'delete' and payload then
-		file.remove(payload)
+		if payload ~= datafile.name then
+			file.remove(payload)
+		end
 	
 	else
 	    local dfile = file.open(filename)
@@ -114,10 +114,10 @@ function receiver(sck, data)
 					lsck:send(data)
 				else
 					dfile:close()
-					if filename == dfname then
-						datasocket = lsck
-						datasocket:on('sent', nil)
-						datasocket:on('disconnection', function(s) datasocket = nil end)
+					if filename == datafile.name then
+						datafile.socket = lsck
+						datafile.socket:on('sent', nil)
+						datafile.socket:on('disconnection', function(s) datafile.socket = nil end)
 					else
 						lsck:close()
 					end
