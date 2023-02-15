@@ -35,7 +35,7 @@ function newDatafile()
 		datafile = {}
 		datafile.name = (('d%04d%02d%02d%02d%02d.csv')
 							:format(dt.year, dt.mon, dt.day, dt.hour, dt.min))
-		datafile.fd = file.open(dfname, 'w')
+		datafile.fd = file.open(datafile.name, 'w')
 		datafile.fd:writeline(('#Start: %02d.%02d.%4d %2d:%02d')
 							:format(dt.day, dt.mon, dt.year, dt.hour, dt.min))
 		datafile.fd:writeline('#Interval: 5s')
@@ -83,7 +83,7 @@ function receiver(sck, data)
 	elseif filename == 'startnew' then
 		newDatafile()
 		sck:on('sent', function(lsck) sck:close() end)
-		sck:send(ok_headers_template:format('text/plain')..dfname)
+		sck:send(ok_headers_template:format('text/plain')..datafile.name)
 
 	elseif filename == 'stopnew' then
 		stopRecord()
@@ -98,9 +98,10 @@ function receiver(sck, data)
 				 ('%02d.%02d.%04d %02d:%02d\n'):format(dt.day, dt.mon, dt.year, dt.hour, dt.min))
 
 	elseif filename == 'delete' and payload then
-		if payload ~= datafile.name then
-			file.remove(payload)
+		if datafile and payload == datafile.name then
+			stopRecord()
 		end
+		file.remove(payload)
 	
 	else
 	    local dfile = file.open(filename)
@@ -114,7 +115,7 @@ function receiver(sck, data)
 					lsck:send(data)
 				else
 					dfile:close()
-					if filename == datafile.name then
+					if datafile and filename == datafile.name then
 						datafile.socket = lsck
 						datafile.socket:on('sent', nil)
 						datafile.socket:on('disconnection', function(s) datafile.socket = nil end)
