@@ -5,6 +5,7 @@ scd40:init(0)
 i2c.setup(1,1,4,i2c.SLOW)	-- indicator
 ind = require"tm1637"
 ind:init(1, 4, '0000')
+ind:setBit(5, 6, 1)			-- No datetime
 
 itimer = tmr.create()
 itimer:alarm(200, tmr.ALARM_AUTO, function()

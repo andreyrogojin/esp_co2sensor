@@ -33,24 +33,31 @@ function newDatafile()
 	if not datafile then
 		local dt = rtctime.epoch2cal(rtctime.get())
 		datafile = {}
-		datafile.name = (('d%04d%02d%02d%02d%02d.csv')
-							:format(dt.year, dt.mon, dt.day, dt.hour, dt.min))
+		if dt.year > 2000 then
+			datafile.name = (('d%04d%02d%02d%02d%02d.csv')
+								:format(dt.year, dt.mon, dt.day, dt.hour, dt.min))
+		else
+			local num = 1
+			while file.exists(('d%012d.csv'):format(num)) do num = num + 1 end
+			datafile.name = ('d%012d.csv'):format(num)
+		end
 		datafile.fd = file.open(datafile.name, 'w')
 		datafile.fd:writeline(('#Start: %02d.%02d.%4d %2d:%02d')
 							:format(dt.day, dt.mon, dt.year, dt.hour, dt.min))
 		datafile.fd:writeline('#Interval: 5s')
 		datafile.fd:writeline('co2ppm,t,Rh')
-		ind:setDcode(5,0x80)
+		ind:setBit(5, 7, 1)
 	end
 end
 
 function stopRecord()
 	if datafile then 
 		datafile.fd:close()
+		datafile.fd = nil
 		if datafile.socket then datafile.socket:close() end
 		datafile = nil
 		measurements = 0
-		ind:setDcode(5,0x0)
+		ind:setBit(5, 7, 0)
 	end
 end
 
@@ -96,6 +103,7 @@ function receiver(sck, data)
 		sck:on('sent', function(lsck) sck:close() end)
 		sck:send(ok_headers_template:format('text/plain')..
 				 ('%02d.%02d.%04d %02d:%02d\n'):format(dt.day, dt.mon, dt.year, dt.hour, dt.min))
+		if dt.year > 2000 then ind:setBit(5, 6, 0) end
 
 	elseif filename == 'delete' and payload then
 		if datafile and payload == datafile.name then

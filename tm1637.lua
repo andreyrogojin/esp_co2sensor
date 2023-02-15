@@ -68,6 +68,15 @@ local function setDcode(self, pos, code)
 	self.needUpdateInd = true
 end
 
+local function setBit(self, pos, b, value)
+	if value == 1 then
+		self.dCodes[pos] = bit.set(self.dCodes[pos], b)
+	else
+		self.dCodes[pos] = bit.clear(self.dCodes[pos], b)
+	end
+	self.needUpdateInd = true
+end
+
 local function setStr(self, str, pos)
   local len = str:len()
   local p = pos or 1
@@ -113,6 +122,7 @@ return {
   lumCode = 0x1,
   setLuminance = setLuminance,
   setDcode = setDcode,
+  setBit = setBit,
   setStr = setStr,
   colon = colon,
   readKeysAndUpdate = readKeysAndUpdate,
