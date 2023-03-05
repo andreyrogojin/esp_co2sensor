@@ -91,6 +91,11 @@ label {
 <label> T<sub>max</sub>:
 	<input id="tmax" type="number" value="40" min="20" max="50" size="2"/>
 </label>
+<div>
+	<button onclick="calibrate(400)">
+		Калибровать на 400ppm
+	</button>
+</div>
 
 <script>
 
@@ -325,6 +330,12 @@ function setTime() {
 	let xhr = new XMLHttpRequest();
 	xhr.open('GET', 'settime.' +
 					String((dt/1000|0) - dt.getTimezoneOffset()*60));
+	xhr.send()
+}
+
+function calibrate(value) {
+	let xhr = new XMLHttpRequest();
+	xhr.open('GET', 'calibrate.' + String(value));
 	xhr.send()
 }
 
