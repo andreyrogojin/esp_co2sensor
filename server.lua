@@ -111,6 +111,37 @@ function receiver(sck, data)
 		end
 		file.remove(payload)
 	
+	elseif filename:match('^calibrate\.%d+') then
+		caltimer1 = tmr.create()
+		state = 1
+		caltimer1:alarm(500, tmr.ALARM_AUTO,
+			function()
+				if state == 1 then
+					state = 0
+					ind:setLuminance(1)
+				else
+					state = 1
+					ind:setLuminance(4)
+				end
+			end)
+		tmr.create():alarm(179000, tmr.ALARM_SINGLE,
+			function()
+				rdtimer:stop()
+				ind:setStr('----')
+			end)
+		tmr.create():alarm(181000, tmr.ALARM_SINGLE,
+			function()
+				caltimer1:stop()
+				caltimer1:unregister()
+				caltimer1 = nil
+				ind:setLuminance(4)
+				ind:setStr(('%4d'):format(cal_correction))
+				cal_correction = nil
+				scd40:start_periodic_measurement()
+				rdtimer:start()
+			end)
+		scd40:perform_forced_recalibration(extention)
+	
 	else
 	    local dfile = file.open(filename)
 	    if not dfile then
