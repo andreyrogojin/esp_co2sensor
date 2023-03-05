@@ -45,12 +45,12 @@ local function scd_read(self, cmd1, cmd2, count)
 end
 
 local function scd_write_read(self, cmd1, cmd2, data1, data2, count)
-	local res
 	i2c.start(self.id)
 	i2c.address(self.id, 0x62, i2c.TRANSMITTER)
 	i2c.write(self.id, cmd1, cmd2, data1, data2, crc8(data1, data2))
 	tmr.create():alarm(400, tmr.ALARM_SINGLE,
 		function()
+			local res
 			i2c.start(self.id)
 			i2c.address(self.id, 0x62, i2c.RECEIVER)
 			res = i2c.read(self.id, count)
@@ -93,7 +93,7 @@ local function perform_forced_recalibration(self, value)
 				function()
 					local t = {struct.pack('>I2', value):byte(1,2)}
 					table.insert(t, 3)
-					scd_write_read(0x36,0x2f, unpack(t))
+					scd_write_read(self,0x36,0x2f, unpack(t))
 				end)
 		end)
 end
