@@ -49,11 +49,14 @@ local function scd_write_read(self, cmd1, cmd2, data1, data2, count)
 	i2c.start(self.id)
 	i2c.address(self.id, 0x62, i2c.TRANSMITTER)
 	i2c.write(self.id, cmd1, cmd2, data1, data2, crc8(data1, data2))
-	i2c.start(self.id)
-	i2c.address(self.id, 0x62, i2c.RECEIVER)
-	res = i2c.read(self.id, count)
-	i2c.stop(self.id)
-	return res
+	tmr.create():alarm(400, tmr.ALARM_SINGLE,
+		function()
+			i2c.start(self.id)
+			i2c.address(self.id, 0x62, i2c.RECEIVER)
+			res = i2c.read(self.id, count)
+			i2c.stop(self.id)
+			cal_correction = struct.unpack('>I2', res) - 0x8000
+		end)
 end
 
 local function start_periodic_measurement(self)
@@ -70,7 +73,7 @@ local function get_data_ready_status(self)
 	return bit.band(res:byte(1), 0x03) ~= 0 or res:byte(2) ~= 0
 end
 
-local function read_measurement(self, lvl)
+local function read_measurement(self)
 	local cnt = 0
 	while not get_data_ready_status(self) do
 		if cnt > 5000 then return '\0\0\0\0\0\0\0\0\0' end
