@@ -134,6 +134,7 @@ return {
 	stop_periodic_measurement = stop_periodic_measurement,
 	read_measurement = read_measurement,
 	set_automatic_self_calibration_enabled = set_automatic_self_calibration_enabled,
+	perform_forced_recalibration = perform_forced_recalibration,
 	get_data_ready_status = get_data_ready_status,
 	read_data = read_data,
 	init = init,
