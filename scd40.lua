@@ -84,6 +84,7 @@ local function read_measurement(self)
 end
 
 local function perform_forced_recalibration(self, value)
+	value = value or 400
 	start_periodic_measurement(self)
 	tmr.create():alarm(3*60*1000, tmr.ALARM_SINGLE,
 		function()
