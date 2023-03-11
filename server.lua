@@ -67,9 +67,10 @@ function receiver(sck, data)
 	-- print(data)
 	local url = data:match('^GET (.+) HTTP/') or data:match('^POST (.+) HTTP/')
 	if not url then sck:close() return end
+	local payload = data:match('.*\r?\n\r?\n(.*)$')
+	data = nil
 	local filename = url:match('^.*/([^/]+)$')
 	local extention = url:match('^.*/[^/]+[.]([^/]+)$')
-	local payload = data:match('.*\r?\n\r?\n(.*)$')
 	if not filename then
 		filename = 'graf.html'
 		extention = 'html'
@@ -89,7 +90,7 @@ function receiver(sck, data)
 		
 	elseif filename == 'startnew' then
 		newDatafile()
-		sck:on('sent', function(lsck) sck:close() end)
+		sck:on('sent', function(lsck) lsck:close() end)
 		sck:send(ok_headers_template:format('text/plain')..datafile.name)
 
 	elseif filename == 'stopnew' then
@@ -100,7 +101,7 @@ function receiver(sck, data)
 	elseif filename:match('^settime\.%d+') then
 		rtctime.set(extention)
 		local dt = rtctime.epoch2cal(rtctime.get())
-		sck:on('sent', function(lsck) sck:close() end)
+		sck:on('sent', function(lsck) lsck:close() end)
 		sck:send(ok_headers_template:format('text/plain')..
 				 ('%02d.%02d.%04d %02d:%02d\n'):format(dt.day, dt.mon, dt.year, dt.hour, dt.min))
 		if dt.year > 2000 then ind:setBit(5, 6, 0) end
@@ -110,6 +111,7 @@ function receiver(sck, data)
 			stopRecord()
 		end
 		file.remove(payload)
+		sck:close()
 	
 	elseif filename:match('^calibrate\.%d+') then
 		caltimer1 = tmr.create()

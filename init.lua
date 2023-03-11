@@ -1,2 +1,2 @@
-dofile"server.lua"
-dofile"dataread.lua"
+dofile"server.lc"
+dofile"dataread.lc"
